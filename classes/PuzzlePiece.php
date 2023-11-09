@@ -3,7 +3,7 @@
 class PuzzlePiece
 {
     private $id;
-    private $faces = [];
+    private $faces;
 
     public function __construct($id, $faces)
     {
@@ -16,6 +16,11 @@ class PuzzlePiece
         return $this->id;
     }
 
+    public function setId($id)
+    {
+        $this->id = $id;
+    }
+
     public function getFaces()
     {
         return $this->faces;
@@ -26,121 +31,107 @@ class PuzzlePiece
         $this->faces = $faces;
     }
 
+    public function rotate()
+    {
+        $currentFaces = $this->getFaces();
+        $rotatedFaces = array();
+
+        for ($i = 0; $i < 4; $i++) {
+            $newIndex = ($i + 1) % 4;
+            $rotatedFaces[$newIndex] = $currentFaces[$i];
+        }
+
+        $this->setFaces($rotatedFaces);
+    }
+
+    public function rotateToCorner($position)
+    {
+        $targetPattern = array();
+
+        switch ($position) {
+            case "top-left":
+                $targetPattern = array(0, 0, -1, -1);
+                break;
+            case "top-right":
+                $targetPattern = array(-1, 0, 0, -1);
+                break;
+            case "bottom-right":
+                $targetPattern = array(-1, -1, 0, 0);
+                break;
+            case "bottom-left":
+                $targetPattern = array(0, -1, -1, 0);
+                break;
+            default:
+                throw new Exception("Invalid position");
+        }
+
+        while (!$this->matchesPattern($this->getFaces(), $targetPattern)) {
+            $this->rotate();
+        }
+    }
+
+    public function rotateToEdge($position)
+    {
+        $targetPattern = array();
+
+        switch ($position) {
+            case "left":
+                $targetPattern = array(0, -1, -1, -1);
+                break;
+            case "top":
+                $targetPattern = array(-1, 0, -1, -1);
+                break;
+            case "right":
+                $targetPattern = array(-1, -1, 0, -1);
+                break;
+            case "bottom":
+                $targetPattern = array(-1, -1, -1, 0);
+                break;
+            default:
+                throw new Exception("Invalid position");
+        }
+
+        while (!$this->matchesPattern($this->getFaces(), $targetPattern)) {
+            $this->rotate();
+        }
+    }
+
+    private function matchesPattern($faces, $pattern)
+    {
+        for ($i = 0; $i < 4; $i++) {
+            if ($pattern[$i] !== -1 && $faces[$i] !== $pattern[$i]) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     public function isCorner()
     {
-        $faces = $this->getFaces();
-        return count(array_filter($faces, function ($face) {
-            return $face === "0";
-        })) === 2;
+        $numBorders = $this->countBorders();
+        return $numBorders == 2;
     }
 
     public function isEdge()
     {
-        $faces = $this->getFaces();
-        return count(array_filter($faces, function ($face) {
-            return $face === "0";
-        })) === 1;
+        $numBorders = $this->countBorders();
+        return $numBorders == 1;
     }
 
     public function isInterior()
     {
-        return !$this->isCorner() && !$this->isEdge();
+        $numBorders = $this->countBorders();
+        return $numBorders == 0;
     }
 
-    public function rotateToCorner($targetOrientation)
+    private function countBorders()
     {
-        $faces = $this->getFaces();
-
-
-        while (!($faces[0] == "0" && $faces[1] == 0)) {
-            $firstElement = array_shift($faces);
-            $faces[] = $firstElement;
+        $numBorders = 0;
+        foreach ($this->faces as $face) {
+            if ($face == 0) {
+                $numBorders++;
+            }
         }
-
-        switch ($targetOrientation) {
-            case 'top-left':
-                break;
-            case 'top-right':
-                $faces = [$faces[3], "0", "0", $faces[2]];
-                break;
-            case 'bottom-right':
-                $faces = [$faces[2], $faces[3], "0", "0"];
-                break;
-            case 'bottom-left':
-                $faces = ["0", $faces[2], $faces[3], "0"];
-                break;
-            default:
-                break;
-        }
-
-        $this->setFaces($faces);
-    }
-
-    public function rotateToEdge($targetOrientation)
-    {
-        $faces = $this->getFaces();
-
-        while (!($faces[0] == "0")) {
-            $firstElement = array_shift($faces);
-            $faces[] = $firstElement;
-        }
-
-        switch ($targetOrientation) {
-            case 'left':
-                // [0, a, b, c]
-                break;
-            case 'top':
-                // [a, 0, b, c]
-                $faces = [$faces[3], "0", $faces[1], $faces[2]];
-                break;
-            case 'right':
-                // [a, b, 0, c]
-                $faces = [$faces[2], $faces[3], "0",  $faces[1]];
-                break;
-            case 'bottom':
-                // [a, b, c, 0]
-                $faces = [$faces[1], $faces[2], $faces[3], "0"];
-                break;
-            default:
-                break;
-        }
-
-        $this->setFaces($faces);
-    }
-
-    public function rotate($amount)
-    {
-        $faces = $this->getFaces();
-
-        switch ($amount) {
-            case 1:
-                $rotatedFaces = [
-                    $faces[3],
-                    $faces[0],
-                    $faces[1],
-                    $faces[2]
-                ];
-                break;
-            case 2:
-                $rotatedFaces = [
-                    $faces[2],
-                    $faces[3],
-                    $faces[0],
-                    $faces[1]
-                ];
-                break;
-            case 3:
-                $rotatedFaces = [
-                    $faces[1],
-                    $faces[2],
-                    $faces[3],
-                    $faces[0]
-                ];
-                break;
-            default:
-                return;
-        }
-
-        $this->setFaces($rotatedFaces);
+        return $numBorders;
     }
 }

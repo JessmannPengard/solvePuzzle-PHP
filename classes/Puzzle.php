@@ -2,46 +2,69 @@
 
 class Puzzle
 {
-    private $width;
-    private $height;
+    private $cols;
+    private $rows;
     private $pieces = [];
 
     public function __construct($fileContent)
     {
-        $this->loadPuzzle($fileContent);
-    }
+        try {
+            $lines = explode("\n", $fileContent);
+            $firstRow = array_shift($lines);
+            $dimensions = explode(" ", $firstRow);
+            $cols = (int)$dimensions[0];
+            $rows = (int)$dimensions[1];
 
-    public function loadPuzzle($fileContent)
-    {
-        $lines = explode("\n", $fileContent);
+            $pieces = array();
 
-        list($this->width, $this->height) = explode(" ", trim(array_shift($lines)));
+            foreach ($lines as $line) {
+                $facesValues = explode(" ", $line);
 
-        $pieceId = 1;
-        foreach ($lines as $line) {
-            $pieceData = explode(" ", $line);
-            $pieceData = array_map('trim', $pieceData);
+                if (count($facesValues) !== 4) {
+                    self::handleError("Invalid piece format.");
+                    return null;
+                }
 
-            $piece = new PuzzlePiece($pieceId, $pieceData);
-            $this->addPiece($piece);
+                $id = count($pieces) + 1;
+                $faces = array_map('intval', $facesValues);
 
-            $pieceId++;
+                $piece = new PuzzlePiece($id, $faces);
+                $pieces[] = $piece;
+            }
+
+            $expectedNumPieces = $cols * $rows;
+            if ($expectedNumPieces !== count($pieces)) {
+                self::handleError("The number of pieces does not fit puzzle dimensions.");
+                return null;
+            }
+
+            $this->cols = $cols;
+            $this->rows = $rows;
+            $this->pieces = $pieces;
+        } catch (Exception $e) {
+            self::handleError("Error processing content: " . $e->getMessage());
+            return null;
         }
     }
 
-    public function getWidth()
+    public function getCols()
     {
-        return $this->width;
+        return $this->cols;
     }
 
-    public function getHeight()
+    public function setCols($cols)
     {
-        return $this->height;
+        $this->cols = $cols;
     }
 
-    public function addPiece(PuzzlePiece $piece)
+    public function getRows()
     {
-        $this->pieces[] = $piece;
+        return $this->rows;
+    }
+
+    public function setRows($rows)
+    {
+        $this->rows = $rows;
     }
 
     public function getPieces()
@@ -49,29 +72,32 @@ class Puzzle
         return $this->pieces;
     }
 
-    public function getCornerPieces()
+    public function setPieces($pieces)
     {
-        $cornerPieces = array_filter($this->pieces, function ($piece) {
-            return $piece->isCorner();
-        });
-        return array_values($cornerPieces);
+        $this->pieces = $pieces;
     }
 
-    public function getEdgePieces()
+    public function toString()
     {
-        $edgePieces = array_filter($this->pieces, function ($piece) {
-            return $piece->isEdge();
-        });
-
-        return array_values($edgePieces);
+        return "Columns: " . $this->cols . " - " . "Rows: " . $this->rows
+            . "<br>Pieces:" . $this->showPieces($this->pieces);
     }
 
-    public function getInteriorPieces()
+    private function showPieces($pieces)
     {
-        $interiorPieces = array_filter($this->pieces, function ($piece) {
-            return !$piece->isCorner() && !$piece->isEdge();
-        });
+        $strPieces = "";
+        foreach ($pieces as $piece) {
+            $strPieces .= "<br>";
+            foreach ($piece->getFaces() as $face) {
+                $strPieces .= $face . " ";
+            }
+            $strPieces = rtrim($strPieces);
+        }
+        return $strPieces;
+    }
 
-        return array_values($interiorPieces);
+    private static function handleError($message)
+    {
+        echo "Error: " . $message . PHP_EOL;
     }
 }

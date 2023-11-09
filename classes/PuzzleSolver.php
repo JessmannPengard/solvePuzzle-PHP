@@ -2,160 +2,214 @@
 
 class PuzzleSolver
 {
+
     private $puzzle;
-    private $solutions;
+    private $solutions = array();
 
     public function __construct($puzzle)
     {
         $this->puzzle = $puzzle;
-        $this->solutions = [];
     }
 
-    public function getSolutions()
+    public function getSolutionsAsString()
     {
-        return $this->solutions;
+        $result = "";
+        foreach ($this->solutions as $solution) {
+            foreach ($solution as $row) {
+                foreach ($row as $piece) {
+                    $result .= ($piece !== null) ? $piece->getId() . " " : "null ";
+                }
+                $result .= "<br>";
+            }
+            $result .= "<br>";
+        }
+        return $result;
     }
 
     public function solve()
     {
-        $this->solvePuzzle(null, 0, 0);
+        $currentSolution = array_fill(0, $this->puzzle->getRows(), array_fill(0, $this->puzzle->getCols(), null));
+        
+        $this->solvePuzzle(0, 0, $currentSolution, array());
     }
 
-    public function solvePuzzle($solution, $row, $col, &$usedPieces = [])
+    private function solvePuzzle($row, $col, $currentSolution, $usedPieces)
     {
-        $width = $this->puzzle->getWidth();
+        $numPieces = count($this->puzzle->getPieces());
 
+        // Calculate next row and column
         $nextRow = $row;
         $nextCol = $col + 1;
-        if ($nextCol == $width) {
+        if ($nextCol == $this->puzzle->getRows()) {
             $nextRow++;
             $nextCol = 0;
         }
 
+        // Base case: If we've placed all the pieces, we found a solution
+        if (count($usedPieces) == count($this->puzzle->getPieces())) {
+            // Save the current solution to the solutions array
+            $this->solutions[] = $currentSolution;
+            return;
+        }
+
         $pieces = $this->puzzle->getPieces();
 
-        for ($i = 0; $i < count($pieces); $i++) {
-            $piece = $pieces[$i];
+        if ($row == 0 && $col == 0) {
+            // Find fixed top left corner to avoid rotated solutions
+            $fixedCornerPiece = $this->findFixedCornerPiece($pieces);
 
-            if (!in_array($piece, $usedPieces) && $this->isValidPlacement($solution, $piece, $row, $col)) {
-                $solution[$row][$col] = $piece;
-                $usedPieces[] = $piece;
+            if ($fixedCornerPiece !== null && !in_array($fixedCornerPiece, $usedPieces) && $this->tryPiece($row, $col, $fixedCornerPiece, $currentSolution)) {
+                $usedPieces[] = $fixedCornerPiece;
+                $currentSolution[$row][$col] = $fixedCornerPiece;
 
-                if (count($usedPieces) == count($pieces)) {
-                    $this->solutions[] = $solution;
-                }
+                // Recursively try to solve the puzzle with the updated solution
+                $this->solvePuzzle($nextRow, $nextCol, $currentSolution, $usedPieces);
 
-                $this->solvePuzzle($solution, $nextRow, $nextCol, $usedPieces);
-
-                // Undo
-                $solution[$row][$col] = null;
+                // Backtrack: Undo the changes made for backtracking
+                $currentSolution[$row][$col] = null;
                 array_pop($usedPieces);
+            }
+        } else {
+            // Iterate through all pieces and try placing them
+            for ($i = 0; $i < $numPieces; $i++) {
+                $currentPiece = $pieces[$i];
+
+                if (!in_array($currentPiece, $usedPieces) && $this->tryPiece($row, $col, $currentPiece, $currentSolution)) {
+                    // Add to used pieces
+                    $usedPieces[] = $currentPiece;
+
+                    // Place the piece in the current solution
+                    $currentSolution[$row][$col] = $currentPiece;
+
+                    // Recursively try to solve the puzzle with the updated solution
+                    $this->solvePuzzle($nextRow, $nextCol, $currentSolution, $usedPieces);
+
+                    // Backtrack: Undo the changes made for backtracking
+                    $currentSolution[$row][$col] = null;
+                    array_pop($usedPieces);
+                }
             }
         }
     }
 
-
-    public function isValidPlacement($solution, $piece, $row, $col)
+    private function findFixedCornerPiece($pieces)
     {
-        $width = $this->puzzle->getWidth();
-        $height = $this->puzzle->getHeight();
+        foreach ($pieces as $piece) {
+            if ($piece->isCorner()) {
+                return $piece;
+            }
+        }
+        return null;
+    }
+
+    private function tryPiece($row, $col, $piece, &$solution)
+    {
+        $width = $this->puzzle->getCols();
+        $height = $this->puzzle->getRows();
 
         $topPiece = ($row > 0) ? $solution[$row - 1][$col] : null;
         $leftPiece = ($col > 0) ? $solution[$row][$col - 1] : null;
 
-        if ($row == 0 && $col == 0) {
-            //TOP LEFT CORNER, MUST BE CORNER
-            //echo "<h6>Trying Top Left Corner " . $piece->getId() . "</h6>";
-            if ($piece->isCorner()) {
-                $piece->rotateToCorner("top-left");
-                return true;
-            }
-        } elseif ($row == 0 && $col == $width - 1) {
-            //TOP RIGHT CORNER, MUST BE CORNER AND FIT LEFT PIECE
-            //echo "<h6>Trying Top Right Corner " . $piece->getId() . "</h6>";
-            if ($piece->isCorner()) {
-                $piece->rotateToCorner("top-right");
-                if ($leftPiece->getFaces()[2] == $piece->getFaces()[0]) {
+        if ($row == 0) {
+            // First row
+            if ($col == 0) {
+                // Top Left Corner
+                if ($piece->isCorner()) {
+                    $piece->rotateToCorner("top-left");
                     return true;
                 }
-            }
-        } elseif ($row == $height - 1 && $col == 0) {
-            //BOTTOM LEFT CORNER, MUST BE CORNER AND FIT TOP PIECE
-            //echo "<h6>Trying Bottom Left Corner " . $piece->getId() . "</h6>";
-            if ($piece->isCorner()) {
-                $piece->rotateToCorner("bottom-left");
-                if ($topPiece->getFaces()[3] == $piece->getFaces()[1]) {
-                    return true;
+            } else if ($col == $width - 1) {
+                // Top Right Corner
+                if ($piece->isCorner()) {
+                    $piece->rotateToCorner("top-right");
+                    if ($leftPiece->getFaces()[2] == $piece->getFaces()[0]) {
+                        return true;
+                    }
+                }
+            } else {
+                // Top Edge
+                if ($piece->isEdge()) {
+                    $piece->rotateToEdge("top");
+                    if ($leftPiece->getFaces()[2] == $piece->getFaces()[0]) {
+                        return true;
+                    }
                 }
             }
-        } elseif ($row == $height - 1 && $col == $width - 1) {
-            //BOTTOM RIGHT CORNER, MUST BE CORNER AND FIT LEFT AND TOP PIECES
-            //echo "<h6>Trying Top Right Corner " . $piece->getId() . "</h6>";
-            if ($piece->isCorner()) {
-                $piece->rotateToCorner("bottom-right");
-                if (
-                    $leftPiece->getFaces()[2] == $piece->getFaces()[0] &&
-                    $topPiece->getFaces()[3] == $piece->getFaces()[1]
-                ) {
-                    return true;
+        } else if ($row == $height - 1) {
+            // Last row
+            if ($col == 0) {
+                // Bottom Left Corner
+                if ($piece->isCorner()) {
+                    $piece->rotateToCorner("bottom-left");
+                    if ($topPiece->getFaces()[3] == $piece->getFaces()[1]) {
+                        return true;
+                    }
                 }
-            }
-        } elseif ($row == 0) {
-            //TOP EDGE, MUST BE EDGE AND FIT LEFT PIECE
-            //echo "<h6>Trying Top Edge " . $piece->getId() . "</h6>";
-            if ($piece->isEdge()) {
-                $piece->rotateToEdge("top");
-                if ($leftPiece->getFaces()[2] == $piece->getFaces()[0]) {
-                    return true;
-                }
-            }
-        } elseif ($row == $height - 1) {
-            //BOTTOM EDGE, MUST BE EDGE AND FIT LEFT AND TOP PIECES
-            //echo "<h6>Trying Bottom Edge " . $piece->getId() . "</h6>";
-            if ($piece->isEdge()) {
-                $piece->rotateToEdge("bottom");
-                if (
-                    $leftPiece->getFaces()[2] == $piece->getFaces()[0] &&
-                    $topPiece->getFaces()[3] == $piece->getFaces()[1]
-                ) {
-                    return true;
-                }
-            }
-        } elseif ($col == 0) {
-            //LEFT EDGE, MUST BE EDGE AND FIT TOP PIECE
-            //echo "<h6>Trying Left Edge " . $piece->getId() . "</h6>";
-            if ($piece->isEdge()) {
-                $piece->rotateToEdge("left");
-                if ($topPiece->getFaces()[3] == $piece->getFaces()[1]) return true;
-            }
-        } elseif ($col == $width - 1) {
-            //RIGHT EDGE, MUST BE EDGE AND FIT LEFT AND TOP PIECE
-            //echo "<h6>Trying Right Edge " . $piece->getId() . "</h6>";
-            if ($piece->isEdge()) {
-                $piece->rotateToEdge("right");
-                if (
-                    $leftPiece->getFaces()[2] == $piece->getFaces()[0] &&
-                    $topPiece->getFaces()[3] == $piece->getFaces()[1]
-                ) {
-                    return true;
-                }
-            }
-        } else {
-            //INTERIOR, MUST BE INTERIOR AND FIT LEFT AND TOP
-            //echo "<h6>Trying Interior " . $piece->getId() . "</h6>";
-            if ($piece->isInterior()) {
-                for ($rotation = 0; $rotation < 4; $rotation++) {
-                    $piece->rotate($rotation);
+            } else if ($col == $width - 1) {
+                // Bottom Right Corner
+                if ($piece->isCorner()) {
+                    $piece->rotateToCorner("bottom-right");
                     if (
-                        $leftPiece->getFaces()[2] == $piece->getFaces()[0] &&
                         $topPiece->getFaces()[3] == $piece->getFaces()[1]
+                        && $leftPiece->getFaces()[2] == $piece->getFaces()[0]
+                    ) {
+                        return true;
+                    }
+                }
+            } else {
+                // Bottom Edge
+                if ($piece->isEdge()) {
+                    $piece->rotateToEdge("bottom");
+                    if (
+                        $topPiece->getFaces()[3] == $piece->getFaces()[1]
+                        && $leftPiece->getFaces()[2] == $piece->getFaces()[0]
                     ) {
                         return true;
                     }
                 }
             }
+        } else {
+            // Intermediate rows
+            if ($col == 0) {
+                // Left Edge
+                if ($piece->isEdge()) {
+                    $piece->rotateToEdge("left");
+                    if ($topPiece->getFaces()[3] == $piece->getFaces()[1]) {
+                        return true;
+                    }
+                }
+            } else if ($col == $width - 1) {
+                // Right Edge
+                if ($piece->isEdge()) {
+                    $piece->rotateToEdge("right");
+                    if (
+                        $topPiece->getFaces()[3] == $piece->getFaces()[1]
+                        && $leftPiece->getFaces()[2] == $piece->getFaces()[0]
+                    ) {
+                        return true;
+                    }
+                }
+            } else {
+                // Interior
+                if ($piece->isInterior()) {
+                    if (
+                        $topPiece->getFaces()[3] == $piece->getFaces()[1]
+                        && $leftPiece->getFaces()[2] == $piece->getFaces()[0]
+                    ) {
+                        return true;
+                    }
+                    for ($i = 0; $i < 3; $i++) {
+                        $piece->rotate();
+                        if (
+                            $topPiece->getFaces()[3] == $piece->getFaces()[1]
+                            && $leftPiece->getFaces()[2] == $piece->getFaces()[0]
+                        ) {
+                            return true;
+                        }
+                    }
+                }
+            }
         }
-
         return false;
     }
 }

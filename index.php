@@ -7,6 +7,7 @@ require "classes/PuzzleSolver.php";
 
 $fileContents = "";
 $errorMsg = "";
+
 if (isset($_FILES["file"])) {
     $file = $_FILES["file"];
 
@@ -18,42 +19,12 @@ if (isset($_FILES["file"])) {
 
         if (in_array($fileExtension, $allowedExtensions)) {
             $fileContents = file_get_contents($uploadedFile);
-
-            //$escapedFileContents = htmlentities($fileContents, ENT_QUOTES, 'UTF-8');
-            //echo "<pre>" . $escapedFileContents . "</pre>";
-
         } else {
             $errorMsg = "File extension not allowed (.txt)";
         }
     } else {
         $errorMsg = "Error uploading file: " . $file["error"];
     }
-}
-
-function solvePuzzle($fileContents)
-{
-
-    $puzzle = new Puzzle($fileContents);
-
-    $solver = new PuzzleSolver($puzzle);
-
-    $solver->solve();
-
-    $solutions = $solver->getSolutions();
-
-    return $solutions;
-}
-
-function paintSolution($solution)
-{
-    foreach ($solution as $row) {
-        foreach ($row as $piece) {
-            echo $piece->getId();
-            echo " ";
-        }
-        echo "<br>";
-    }
-    echo "<br>";
 }
 
 ?>
@@ -65,35 +36,47 @@ function paintSolution($solution)
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Puzzle Solver</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="js/index.js"></script>
 </head>
 
 <body>
-    <form action="" method="post" enctype="multipart/form-data">
-        <label for="file">Select puzzle file</label>
-        <input type="file" name="file" id="file" accept=".txt">
-        <input type="submit" value="Solve">
-        <label for="error"><br><br><?= $errorMsg ?></label>
-    </form>
 
-    <?php
+    <div id="spinner" class="spinner hidden"></div>
 
-    if ($fileContents != "") {
-        $startTime = microtime(true);
+    <div id="content">
+        <form action="" method="post" enctype="multipart/form-data" onsubmit="showSpinner()">
+            <label for="file">Select puzzle file</label>
+            <input type="file" name="file" id="file" accept=".txt">
+            <input type="submit" value="Solve">
+            <label for="error"><br><br><?= $errorMsg ?></label>
+        </form>
 
-        $solutions = solvePuzzle($fileContents);
+        <?php
 
-        $endTime = microtime(true);
-        $executionTime = $endTime - $startTime;
+        if ($fileContents != "") {
+            $puzzle = new Puzzle($fileContents);
+            $solver = new PuzzleSolver($puzzle);
 
-        echo "<h2>Solution(s):</h2>";
-        foreach ($solutions as $solution) {
-            paintSolution($solution);
+            $startTime = microtime(true);
+            $solver->solve();
+            $endTime = microtime(true);
+
+            $solutions = $solver->getSolutionsAsString();
+            $executionTime = $endTime - $startTime;
+
+            echo "<h3>Puzzle:</h3>";
+            echo $puzzle->toString();
+            echo "<h3>Solution(s):</h3>";
+            echo $solutions;
+            echo "Execution time: " . number_format($executionTime, 4) . " secs.";
+
+            //Hide spinner
+            echo '<script>hideSpinner();</script>';
         }
-        echo "Execution time: " . number_format($executionTime, 4) . " secs.";
-    }
 
-    ?>
-
+        ?>
+    </div>
 </body>
 
 </html>
