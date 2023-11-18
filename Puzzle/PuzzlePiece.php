@@ -1,40 +1,42 @@
 <?php
 
+namespace Puzzle;
+
 class PuzzlePiece
 {
-    private $id;
-    private $faces;
+    private int $id;
+    private array $faces = [];
 
-    public function __construct($id, $faces)
+    public function __construct(int $id, array $faces)
     {
         $this->id = $id;
         $this->faces = $faces;
     }
 
-    public function getId()
+    public function getId(): int
     {
         return $this->id;
     }
 
-    public function setId($id)
+    public function setId(int $id): void
     {
         $this->id = $id;
     }
 
-    public function getFaces()
+    public function getFaces(): array
     {
         return $this->faces;
     }
 
-    public function setFaces($faces)
+    public function setFaces(array $faces): void
     {
         $this->faces = $faces;
     }
 
-    public function rotate()
+    public function rotate(): void
     {
         $currentFaces = $this->getFaces();
-        $rotatedFaces = array();
+        $rotatedFaces = [];
 
         for ($i = 0; $i < 4; $i++) {
             $newIndex = ($i + 1) % 4;
@@ -44,25 +46,25 @@ class PuzzlePiece
         $this->setFaces($rotatedFaces);
     }
 
-    public function rotateToCorner($position)
+    public function rotateToCorner(string $position): void
     {
-        $targetPattern = array();
+        $targetPattern = [];
 
         switch ($position) {
             case "top-left":
-                $targetPattern = array(0, 0, -1, -1);
+                $targetPattern = [0, 0, -1, -1];
                 break;
             case "top-right":
-                $targetPattern = array(-1, 0, 0, -1);
+                $targetPattern = [-1, 0, 0, -1];
                 break;
             case "bottom-right":
-                $targetPattern = array(-1, -1, 0, 0);
+                $targetPattern = [-1, -1, 0, 0];
                 break;
             case "bottom-left":
-                $targetPattern = array(0, -1, -1, 0);
+                $targetPattern = [0, -1, -1, 0];
                 break;
             default:
-                throw new Exception("Invalid position");
+                throw new \Exception("Invalid position");
         }
 
         while (!$this->matchesPattern($this->getFaces(), $targetPattern)) {
@@ -70,25 +72,25 @@ class PuzzlePiece
         }
     }
 
-    public function rotateToEdge($position)
+    public function rotateToEdge(string $position): void
     {
-        $targetPattern = array();
+        $targetPattern = [];
 
         switch ($position) {
             case "left":
-                $targetPattern = array(0, -1, -1, -1);
+                $targetPattern = [0, -1, -1, -1];
                 break;
             case "top":
-                $targetPattern = array(-1, 0, -1, -1);
+                $targetPattern = [-1, 0, -1, -1];
                 break;
             case "right":
-                $targetPattern = array(-1, -1, 0, -1);
+                $targetPattern = [-1, -1, 0, -1];
                 break;
             case "bottom":
-                $targetPattern = array(-1, -1, -1, 0);
+                $targetPattern = [-1, -1, -1, 0];
                 break;
             default:
-                throw new Exception("Invalid position");
+                throw new \Exception("Invalid position");
         }
 
         while (!$this->matchesPattern($this->getFaces(), $targetPattern)) {
@@ -106,25 +108,25 @@ class PuzzlePiece
         return true;
     }
 
-    public function isCorner()
+    public function isCorner(): bool
     {
         $numBorders = $this->countBorders();
         return $numBorders == 2;
     }
 
-    public function isEdge()
+    public function isEdge(): bool
     {
         $numBorders = $this->countBorders();
         return $numBorders == 1;
     }
 
-    public function isInterior()
+    public function isInterior(): bool
     {
         $numBorders = $this->countBorders();
         return $numBorders == 0;
     }
 
-    private function countBorders()
+    private function countBorders(): int
     {
         $numBorders = 0;
         foreach ($this->faces as $face) {

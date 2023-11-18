@@ -1,46 +1,48 @@
 <?php
 
+namespace Puzzle;
+
 class PuzzleSolver
 {
 
-    private $puzzle;
-    private $solutions = array();
+    private Puzzle $puzzle;
+    private array $solutions = [];
 
-    public function __construct($puzzle)
+    public function __construct(Puzzle $puzzle)
     {
         $this->puzzle = $puzzle;
     }
 
-    public function getSolutionsAsString()
+    public function getSolutionsAsString(): string
     {
-        $result = "";
+        $result = "\nSolution(s)\n";
         foreach ($this->solutions as $solution) {
             foreach ($solution as $row) {
                 foreach ($row as $piece) {
                     $result .= ($piece !== null) ? $piece->getId() . " " : "null ";
                 }
-                $result .= "<br>";
+                $result .= "\n";
             }
-            $result .= "<br>";
+            $result .= "\n";
         }
         return $result;
     }
 
-    public function solve()
+    public function solve(): void
     {
         $currentSolution = array_fill(0, $this->puzzle->getRows(), array_fill(0, $this->puzzle->getCols(), null));
-        
+
         $this->solvePuzzle(0, 0, $currentSolution, array());
     }
 
-    private function solvePuzzle($row, $col, $currentSolution, $usedPieces)
+    private function solvePuzzle(int $row, int $col, array $currentSolution, array $usedPieces): void
     {
         $numPieces = count($this->puzzle->getPieces());
 
         // Calculate next row and column
         $nextRow = $row;
         $nextCol = $col + 1;
-        if ($nextCol == $this->puzzle->getRows()) {
+        if ($nextCol == $this->puzzle->getCols()) {
             $nextRow++;
             $nextCol = 0;
         }
@@ -58,17 +60,14 @@ class PuzzleSolver
             // Find fixed top left corner to avoid rotated solutions
             $fixedCornerPiece = $this->findFixedCornerPiece($pieces);
 
-            if ($fixedCornerPiece !== null && !in_array($fixedCornerPiece, $usedPieces) && $this->tryPiece($row, $col, $fixedCornerPiece, $currentSolution)) {
-                $usedPieces[] = $fixedCornerPiece;
-                $currentSolution[$row][$col] = $fixedCornerPiece;
+            // Add to used pieces
+            $usedPieces[] = $fixedCornerPiece;
 
-                // Recursively try to solve the puzzle with the updated solution
-                $this->solvePuzzle($nextRow, $nextCol, $currentSolution, $usedPieces);
+            // Place the piece in the current solution
+            $currentSolution[$row][$col] = $fixedCornerPiece;
 
-                // Backtrack: Undo the changes made for backtracking
-                $currentSolution[$row][$col] = null;
-                array_pop($usedPieces);
-            }
+            // Recursively try to solve the puzzle with the updated solution
+            $this->solvePuzzle($nextRow, $nextCol, $currentSolution, $usedPieces);
         } else {
             // Iterate through all pieces and try placing them
             for ($i = 0; $i < $numPieces; $i++) {
@@ -92,17 +91,18 @@ class PuzzleSolver
         }
     }
 
-    private function findFixedCornerPiece($pieces)
+    private function findFixedCornerPiece(array $pieces): PuzzlePiece
     {
         foreach ($pieces as $piece) {
             if ($piece->isCorner()) {
+                $piece->rotateToCorner("top-left");
                 return $piece;
             }
         }
         return null;
     }
 
-    private function tryPiece($row, $col, $piece, &$solution)
+    private function tryPiece(int $row, int $col, PuzzlePiece $piece, array &$solution): bool
     {
         $width = $this->puzzle->getCols();
         $height = $this->puzzle->getRows();

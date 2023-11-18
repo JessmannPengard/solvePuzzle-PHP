@@ -1,9 +1,9 @@
 <?php
 
-require "helpers/functions.php";
-require "classes/Puzzle.php";
-require "classes/PuzzlePiece.php";
-require "classes/PuzzleSolver.php";
+require_once __DIR__ . '/autoload.php';
+
+use Puzzle\Puzzle;
+use Puzzle\PuzzleSolver;
 
 $fileContents = "";
 $errorMsg = "";
