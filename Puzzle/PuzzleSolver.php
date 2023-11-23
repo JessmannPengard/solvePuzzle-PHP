@@ -13,17 +13,18 @@ class PuzzleSolver
         $this->puzzle = $puzzle;
     }
 
-    public function getSolutionsAsString(): string
+    public function getSolutionsAsString(bool $forWeb = false): string
     {
-        $result = "\nSolution(s)\n";
+        $separator = $forWeb ? "<br>" : "\n";
+        $result = $separator . "Solution(s)" . $separator;
         foreach ($this->solutions as $solution) {
             foreach ($solution as $row) {
                 foreach ($row as $piece) {
                     $result .= ($piece !== null) ? $piece->getId() . " " : "null ";
                 }
-                $result .= "\n";
+                $result .= $separator;
             }
-            $result .= "\n";
+            $result .= $separator;
         }
         return $result;
     }
@@ -94,9 +95,20 @@ class PuzzleSolver
     private function findFixedCornerPiece(array $pieces): PuzzlePiece
     {
         foreach ($pieces as $piece) {
-            if ($piece->isCorner()) {
-                $piece->rotateToCorner("top-left");
-                return $piece;
+            if ($this->puzzle->isOneDimensional()) {
+                if ($piece->isLinearCorner()) {
+                    if ($this->puzzle->getRows() == 1) {
+                        $piece->rotateToCorner("left");
+                    } else {
+                        $piece->rotateToCorner("top");
+                    }
+                    return $piece;
+                }
+            } else {
+                if ($piece->isCorner()) {
+                    $piece->rotateToCorner("top-left");
+                    return $piece;
+                }
             }
         }
         return null;
@@ -110,101 +122,163 @@ class PuzzleSolver
         $topPiece = ($row > 0) ? $solution[$row - 1][$col] : null;
         $leftPiece = ($col > 0) ? $solution[$row][$col - 1] : null;
 
-        if ($row == 0) {
-            // First row
-            if ($col == 0) {
-                // Top Left Corner
-                if ($piece->isCorner()) {
-                    $piece->rotateToCorner("top-left");
-                    return true;
-                }
-            } else if ($col == $width - 1) {
-                // Top Right Corner
-                if ($piece->isCorner()) {
-                    $piece->rotateToCorner("top-right");
-                    if ($leftPiece->getFaces()[2] == $piece->getFaces()[0]) {
+        if ($this->puzzle->isOneDimensional()) {
+            // One-dimensional puzzle
+            if ($height == 1) {
+                // X linear
+                if ($col == 0) {
+                    // Left Corner
+                    if ($piece->isLinearCorner()) {
+                        $piece->rotateToCorner("left");
+                        return true;
+                    }
+                } else if ($col < $width - 1) {
+                    // Interior X linear
+                    if ($piece->isDoubleEdge()) {
+                        if ($leftPiece->getFaces()[2] == $piece->getFaces()[0]) {
+                            return true;
+                        }
+                        for ($i = 0; $i < 3; $i++) {
+                            $piece->rotate();
+                            if ($leftPiece->getFaces()[2] == $piece->getFaces()[0]) {
+                                return true;
+                            }
+                        }
+                    }
+                } else {
+                    // Right Corner
+                    if ($piece->isLinearCorner()) {
+                        $piece->rotateToCorner("right");
                         return true;
                     }
                 }
             } else {
-                // Top Edge
-                if ($piece->isEdge()) {
-                    $piece->rotateToEdge("top");
-                    if ($leftPiece->getFaces()[2] == $piece->getFaces()[0]) {
+                // Y linear
+                if ($row == 0) {
+                    // Top corner
+                    if ($piece->isLinearCorner()) {
+                        $piece->rotateToCorner("top");
                         return true;
                     }
-                }
-            }
-        } else if ($row == $height - 1) {
-            // Last row
-            if ($col == 0) {
-                // Bottom Left Corner
-                if ($piece->isCorner()) {
-                    $piece->rotateToCorner("bottom-left");
-                    if ($topPiece->getFaces()[3] == $piece->getFaces()[1]) {
-                        return true;
+                } else if ($row < $height - 1) {
+                    // Interior Y linear
+                    if ($piece->isDoubleEdge()) {
+                        if ($topPiece->getFaces()[3] == $piece->getFaces()[1]) {
+                            return true;
+                        }
+                        for ($i = 0; $i < 3; $i++) {
+                            $piece->rotate();
+                            if ($topPiece->getFaces()[3] == $piece->getFaces()[1]) {
+                                return true;
+                            }
+                        }
                     }
-                }
-            } else if ($col == $width - 1) {
-                // Bottom Right Corner
-                if ($piece->isCorner()) {
-                    $piece->rotateToCorner("bottom-right");
-                    if (
-                        $topPiece->getFaces()[3] == $piece->getFaces()[1]
-                        && $leftPiece->getFaces()[2] == $piece->getFaces()[0]
-                    ) {
-                        return true;
-                    }
-                }
-            } else {
-                // Bottom Edge
-                if ($piece->isEdge()) {
-                    $piece->rotateToEdge("bottom");
-                    if (
-                        $topPiece->getFaces()[3] == $piece->getFaces()[1]
-                        && $leftPiece->getFaces()[2] == $piece->getFaces()[0]
-                    ) {
+                } else {
+                    // Bottom corner
+                    if ($piece->isLinearCorner()) {
+                        $piece->rotateToCorner("bottom");
                         return true;
                     }
                 }
             }
         } else {
-            // Intermediate rows
-            if ($col == 0) {
-                // Left Edge
-                if ($piece->isEdge()) {
-                    $piece->rotateToEdge("left");
-                    if ($topPiece->getFaces()[3] == $piece->getFaces()[1]) {
+            // Square or rectangular puzzle
+            if ($row == 0) {
+                // First row
+                if ($col == 0) {
+                    // Top Left Corner
+                    if ($piece->isCorner()) {
+                        $piece->rotateToCorner("top-left");
                         return true;
+                    }
+                } else if ($col == $width - 1) {
+                    // Top Right Corner
+                    if ($piece->isCorner()) {
+                        $piece->rotateToCorner("top-right");
+                        if ($leftPiece->getFaces()[2] == $piece->getFaces()[0]) {
+                            return true;
+                        }
+                    }
+                } else {
+                    // Top Edge
+                    if ($piece->isEdge()) {
+                        $piece->rotateToEdge("top");
+                        if ($leftPiece->getFaces()[2] == $piece->getFaces()[0]) {
+                            return true;
+                        }
                     }
                 }
-            } else if ($col == $width - 1) {
-                // Right Edge
-                if ($piece->isEdge()) {
-                    $piece->rotateToEdge("right");
-                    if (
-                        $topPiece->getFaces()[3] == $piece->getFaces()[1]
-                        && $leftPiece->getFaces()[2] == $piece->getFaces()[0]
-                    ) {
-                        return true;
+            } else if ($row == $height - 1) {
+                // Last row
+                if ($col == 0) {
+                    // Bottom Left Corner
+                    if ($piece->isCorner()) {
+                        $piece->rotateToCorner("bottom-left");
+                        if ($topPiece->getFaces()[3] == $piece->getFaces()[1]) {
+                            return true;
+                        }
                     }
-                }
-            } else {
-                // Interior
-                if ($piece->isInterior()) {
-                    if (
-                        $topPiece->getFaces()[3] == $piece->getFaces()[1]
-                        && $leftPiece->getFaces()[2] == $piece->getFaces()[0]
-                    ) {
-                        return true;
-                    }
-                    for ($i = 0; $i < 3; $i++) {
-                        $piece->rotate();
+                } else if ($col == $width - 1) {
+                    // Bottom Right Corner
+                    if ($piece->isCorner()) {
+                        $piece->rotateToCorner("bottom-right");
                         if (
                             $topPiece->getFaces()[3] == $piece->getFaces()[1]
                             && $leftPiece->getFaces()[2] == $piece->getFaces()[0]
                         ) {
                             return true;
+                        }
+                    }
+                } else {
+                    // Bottom Edge
+                    if ($piece->isEdge()) {
+                        $piece->rotateToEdge("bottom");
+                        if (
+                            $topPiece->getFaces()[3] == $piece->getFaces()[1]
+                            && $leftPiece->getFaces()[2] == $piece->getFaces()[0]
+                        ) {
+                            return true;
+                        }
+                    }
+                }
+            } else {
+                // Intermediate rows
+                if ($col == 0) {
+                    // Left Edge
+                    if ($piece->isEdge()) {
+                        $piece->rotateToEdge("left");
+                        if ($topPiece->getFaces()[3] == $piece->getFaces()[1]) {
+                            return true;
+                        }
+                    }
+                } else if ($col == $width - 1) {
+                    // Right Edge
+                    if ($piece->isEdge()) {
+                        $piece->rotateToEdge("right");
+                        if (
+                            $topPiece->getFaces()[3] == $piece->getFaces()[1]
+                            && $leftPiece->getFaces()[2] == $piece->getFaces()[0]
+                        ) {
+                            return true;
+                        }
+                    }
+                } else {
+                    // Interior
+                    if ($piece->isInterior()) {
+                        if (
+                            $topPiece->getFaces()[3] == $piece->getFaces()[1]
+                            && $leftPiece->getFaces()[2] == $piece->getFaces()[0]
+                        ) {
+                            return true;
+                        }
+                        for ($i = 0; $i < 3; $i++) {
+                            $piece->rotate();
+                            if (
+                                $topPiece->getFaces()[3] == $piece->getFaces()[1]
+                                && $leftPiece->getFaces()[2] == $piece->getFaces()[0]
+                            ) {
+                                return true;
+                            }
                         }
                     }
                 }

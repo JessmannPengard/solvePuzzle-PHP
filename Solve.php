@@ -17,11 +17,19 @@ $puzzle = Puzzle::loadPuzzle($fileName);
 if ($puzzle !== null) {
     echo $puzzle->toString() . PHP_EOL;
 
+    echo "Solving..." . PHP_EOL;
     $solver = new PuzzleSolver($puzzle);
+
+    $startTime = microtime(true);
     $solver->solve();
+    $endTime = microtime(true);
+
+    $executionTime = $endTime - $startTime;
 
     $solutions = $solver->getSolutionsAsString();
-    echo $solutions . PHP_EOL;
+    echo $solutions;
+
+    echo "Solved in " . number_format($executionTime, 4) . " secs.";
 }
 
 

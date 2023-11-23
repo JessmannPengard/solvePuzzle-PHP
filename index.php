@@ -18,7 +18,8 @@ if (isset($_FILES["file"])) {
         $fileExtension = strtolower(pathinfo($file["name"], PATHINFO_EXTENSION));
 
         if (in_array($fileExtension, $allowedExtensions)) {
-            $fileContents = file_get_contents($uploadedFile);
+            $fileName = $file["tmp_name"];
+            $puzzle = Puzzle::loadPuzzle($file["tmp_name"]);
         } else {
             $errorMsg = "File extension not allowed (.txt)";
         }
@@ -54,24 +55,23 @@ if (isset($_FILES["file"])) {
 
         <?php
 
-        if ($fileContents != "") {
-            $puzzle = new Puzzle($fileContents);
+        if (isset($puzzle)) {
             $solver = new PuzzleSolver($puzzle);
 
             $startTime = microtime(true);
             $solver->solve();
             $endTime = microtime(true);
 
-            $solutions = $solver->getSolutionsAsString();
+            $solutions = $solver->getSolutionsAsString(true);
             $executionTime = $endTime - $startTime;
 
             echo "<h3>Puzzle:</h3>";
-            echo $puzzle->toString();
+            echo $puzzle->toString(true);
             echo "<h3>Solution(s):</h3>";
             echo $solutions;
             echo "Execution time: " . number_format($executionTime, 4) . " secs.";
 
-            //Hide spinner
+            // Hide spinner
             echo '<script>hideSpinner();</script>';
         }
 

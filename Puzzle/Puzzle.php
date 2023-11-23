@@ -39,17 +39,19 @@ class Puzzle
         $this->pieces = $pieces;
     }
 
-    public function toString(): string
+    public function toString(bool $forWeb = false): string
     {
+        $separator = $forWeb ? "<br>" : "\n";
         return "Columns: " . $this->cols . " - " . "Rows: " . $this->rows
-            . "\nPieces:" . $this->showPieces($this->pieces);
+            . $separator . "Pieces:" . $this->showPieces($this->pieces, $forWeb);
     }
 
-    private function showPieces(array $pieces): string
+    private function showPieces(array $pieces, bool $forWeb = false): string
     {
         $strPieces = "";
+        $separator = $forWeb ? "<br>" : "\n";
         foreach ($pieces as $piece) {
-            $strPieces .= "\n";
+            $strPieces .= $separator;
             foreach ($piece->getFaces() as $face) {
                 $strPieces .= $face . " ";
             }
@@ -109,5 +111,10 @@ class Puzzle
             self::handleError("Error processing content: " . $e->getMessage());
             return null;
         }
+    }
+
+    public function isOneDimensional(): bool
+    {
+        return $this->getRows() == 1 || $this->getCols() == 1;
     }
 }

@@ -63,6 +63,18 @@ class PuzzlePiece
             case "bottom-left":
                 $targetPattern = [0, -1, -1, 0];
                 break;
+            case "left":
+                $targetPattern = [0, 0, -1, 0];
+                break;
+            case "right":
+                $targetPattern = [-1, 0, 0, 0];
+                break;
+            case "top":
+                $targetPattern = [0, 0, 0, -1];
+                break;
+            case "bottom":
+                $targetPattern = [0, -1, 0, 0];
+                break;
             default:
                 throw new \Exception("Invalid position");
         }
@@ -114,10 +126,22 @@ class PuzzlePiece
         return $numBorders == 2;
     }
 
+    public function isLinearCorner(): bool
+    {
+        $numBorders = $this->countBorders();
+        return $numBorders == 3;
+    }
+
     public function isEdge(): bool
     {
         $numBorders = $this->countBorders();
         return $numBorders == 1;
+    }
+
+    public function isDoubleEdge(): bool
+    {
+        $numBorders = $this->countBorders();
+        return $numBorders == 2;
     }
 
     public function isInterior(): bool
