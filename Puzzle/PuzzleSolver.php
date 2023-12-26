@@ -49,7 +49,7 @@ class PuzzleSolver
         }
 
         // Base case: If we've placed all the pieces, we found a solution
-        if (count($usedPieces) == count($this->puzzle->getPieces())) {
+        if (count($usedPieces) == $numPieces) {
             // Save the current solution to the solutions array
             $this->solutions[] = $currentSolution;
             return;
