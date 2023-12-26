@@ -2,17 +2,40 @@
 
 namespace Puzzle;
 
+/**
+ * Class PuzzleSolver
+ *
+ * This class is responsible for solving a given puzzle and storing the solutions.
+ */
 class PuzzleSolver
 {
 
+    /**
+     * @var Puzzle The puzzle to be solved.
+     */
     private Puzzle $puzzle;
+
+    /**
+     * @var array An array to store the solutions found during the solving process.
+     */
     private array $solutions = [];
 
+    /**
+     * PuzzleSolver constructor.
+     *
+     * @param Puzzle $puzzle The puzzle to be solved.
+     */
     public function __construct(Puzzle $puzzle)
     {
         $this->puzzle = $puzzle;
     }
 
+    /**
+     * Get the solutions as a formatted string.
+     *
+     * @param bool $forWeb If true, use HTML line breaks; otherwise, use plain text line breaks.
+     * @return string A string representation of the solutions.
+     */
     public function getSolutionsAsString(bool $forWeb = false): string
     {
         $separator = $forWeb ? "<br>" : "\n";
@@ -29,6 +52,9 @@ class PuzzleSolver
         return $result;
     }
 
+    /**
+     * Solve the puzzle.
+     */
     public function solve(): void
     {
         $currentSolution = array_fill(0, $this->puzzle->getRows(), array_fill(0, $this->puzzle->getCols(), null));
@@ -36,6 +62,14 @@ class PuzzleSolver
         $this->solvePuzzle(0, 0, $currentSolution, array());
     }
 
+    /**
+     * Recursively solve the puzzle using backtracking.
+     *
+     * @param int $row The current row.
+     * @param int $col The current column.
+     * @param array $currentSolution The current state of the puzzle solution.
+     * @param array $usedPieces An array of used puzzle pieces.
+     */
     private function solvePuzzle(int $row, int $col, array $currentSolution, array $usedPieces): void
     {
         $numPieces = count($this->puzzle->getPieces());
@@ -92,6 +126,12 @@ class PuzzleSolver
         }
     }
 
+    /**
+     * Find a fixed corner piece to avoid rotated solutions.
+     *
+     * @param array $pieces The array of puzzle pieces.
+     * @return PuzzlePiece|null The fixed corner piece.
+     */
     private function findFixedCornerPiece(array $pieces): PuzzlePiece
     {
         foreach ($pieces as $piece) {
@@ -114,6 +154,15 @@ class PuzzleSolver
         return null;
     }
 
+    /**
+     * Try placing a puzzle piece in the solution at the given position.
+     *
+     * @param int $row The current row.
+     * @param int $col The current column.
+     * @param PuzzlePiece $piece The puzzle piece to be placed.
+     * @param array $solution The current state of the puzzle solution.
+     * @return bool True if the piece can be placed; otherwise, false.
+     */
     private function tryPiece(int $row, int $col, PuzzlePiece $piece, array &$solution): bool
     {
         $width = $this->puzzle->getCols();
